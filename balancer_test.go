@@ -33,27 +33,6 @@ var _ = Describe("Notification", func() {
 		}))
 	})
 
-	It("should copy on error", func() {
-		n := newNotification(map[string][]int32{
-			"a": {1, 2, 3},
-			"b": {4, 5},
-			"c": {1, 2},
-		})
-		o := n.error()
-
-		Expect(n).To(Equal(&Notification{
-			Type:    RebalanceStart,
-			Current: map[string][]int32{"a": {1, 2, 3}, "b": {4, 5}, "c": {1, 2}},
-		}))
-
-		Expect(o).To(Equal(&Notification{
-			Type:     RebalanceError,
-			Claimed:  map[string][]int32{},
-			Released: map[string][]int32{},
-			Current:  map[string][]int32{"a": {1, 2, 3}, "b": {4, 5}, "c": {1, 2}},
-		}))
-	})
-
 })
 
 var _ = Describe("balancer", func() {
@@ -69,7 +48,7 @@ var _ = Describe("balancer", func() {
 		}
 
 		var err error
-		subject, err = newBalancerFromMeta(client, StrategyRange, map[string]sarama.ConsumerGroupMemberMetadata{
+		subject, err = newBalancerFromMeta(client, map[string]sarama.ConsumerGroupMemberMetadata{
 			"b": {Topics: []string{"three", "one"}},
 			"a": {Topics: []string{"one", "two"}},
 		})
@@ -81,13 +60,12 @@ var _ = Describe("balancer", func() {
 	})
 
 	It("should perform", func() {
-		Expect(subject.Perform()).To(Equal(map[string]map[string][]int32{
+		Expect(subject.Perform(StrategyRange)).To(Equal(map[string]map[string][]int32{
 			"a": {"one": {0, 1}, "two": {0, 1, 2}},
 			"b": {"one": {2, 3}, "three": {0, 1}},
 		}))
 
-		subject.strategy = StrategyRoundRobin
-		Expect(subject.Perform()).To(Equal(map[string]map[string][]int32{
+		Expect(subject.Perform(StrategyRoundRobin)).To(Equal(map[string]map[string][]int32{
 			"a": {"one": {0, 2}, "two": {0, 1, 2}},
 			"b": {"one": {1, 3}, "three": {0, 1}},
 		}))
